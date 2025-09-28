@@ -771,7 +771,7 @@ action:
                             target:
                               entity_id: !input climate_entity
                             data:
-                              hvac_mode: auto
+                              hvac_mode: heat_cool
                           - condition: template
                             value_template: "{{ temperature_needs_change }}"
                           - condition: template
