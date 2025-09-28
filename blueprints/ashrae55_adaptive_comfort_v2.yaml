@@ -255,6 +255,14 @@ variables:
       {% else %}C{% endif %}   {# final fallback if integration doesnt expose a unit #}
     {% endif %}
 
+  c_to_unit: >
+    {% set c = value_c | float %}
+    {% if thermostat_unit_resolved == 'F' %}
+      {{ (c * 9/5 + 32) | round(1) }}
+    {% else %}
+      {{ c | round(1) }}
+    {% endif %}
+
   # Current target setpoint, normalized to °C (handles single or dual setpoint thermostats)
   current_setpoint_c: >
     {% set single = state_attr(climate_entity_id, 'temperature') %}
@@ -498,7 +506,19 @@ variables:
     {% endif %}
 
   temperature_needs_change: >
-    {{ (current_setpoint_c - target_temp) | abs > 0.5 }}
+    {% if current_hvac_mode == 'heat_cool' %}
+      {% set low  = state_attr(climate_entity_id, 'target_temp_low') %}
+      {% set high = state_attr(climate_entity_id, 'target_temp_high') %}
+
+      {% set low_c = ( (low - 32) * 5/9 ) if (low is number and thermostat_unit_resolved == 'F') else (low if low is number else none) %}
+      {% set high_c = ( (high - 32) * 5/9 ) if (high is number and thermostat_unit_resolved == 'F') else (high if high is number else none) %}
+
+      {{ (low_c is number and (low_c - comfort_temp_min) | abs > 0.5)
+        or
+        (high_c is number and (high_c - comfort_temp_max) | abs > 0.5) }}
+    {% else %}
+      {{ (current_setpoint_c - target_temp) | abs > 0.5 }}
+    {% endif %}
 
   fan_mode_needs_change: >
     {% if adaptive_air_velocity_val %}
@@ -780,13 +800,12 @@ action:
                             target:
                               entity_id: !input climate_entity
                             data:
-                              temperature: >
-                                {% set sp_c = adaptive_comfort_temp | float %}   {# or adaptive_comfort_temp in that block #}
-                                {% if thermostat_unit_resolved == 'F' %}
-                                  {{ (sp_c * 9/5 + 32) | round(1) }}
-                                {% else %}
-                                  {{ sp_c | round(1) }}
-                                {% endif %}
+                              target_temp_low: >
+                                {% set value_c = comfort_temp_min %}
+                                {{ c_to_unit }}
+                              target_temp_high: >
+                                {% set value_c = comfort_temp_max %}
+                                {{ c_to_unit }}
 
                   # Set optimal fan speed only if needed for comfort zone scenarios
                   - condition: template
