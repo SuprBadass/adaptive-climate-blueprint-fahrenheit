@@ -615,7 +615,7 @@ action:
                     target:
                       entity_id: !input climate_entity
                     data:
-                      fan_mode: "low"
+                      fan_mode: "auto"
 
               # Cooling needed - indoor temp above comfort zone
               - conditions:
@@ -676,14 +676,14 @@ action:
                             target:
                               entity_id: !input climate_entity
                             data:
-                              hvac_mode: fan_only
+                              hvac_mode: off
                           - condition: template
                             value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_fan_mode
                             target:
                               entity_id: !input climate_entity
                             data:
-                              fan_mode: "medium"
+                              fan_mode: "on"
 
                       # ASHRAE 55 natural ventilation opportunity: outdoor < comfort_max < indoor
                       - conditions:
@@ -697,14 +697,14 @@ action:
                             target:
                               entity_id: !input climate_entity
                             data:
-                              hvac_mode: fan_only
+                              hvac_mode: off
                           - condition: template
                             value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_fan_mode
                             target:
                               entity_id: !input climate_entity
                             data:
-                              fan_mode: "low"
+                              fan_mode: "diffuse"
 
                       # Within comfort zone but outdoor significantly warmer - minimal cooling
                       - conditions:
