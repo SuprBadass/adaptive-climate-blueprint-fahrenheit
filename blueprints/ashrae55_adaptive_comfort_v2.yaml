@@ -210,6 +210,14 @@ blueprint:
       selector:
         boolean:
 
+    debug_log_only:
+      name: Debug – log only (no thermostat changes)
+      description: When on, the automation logs as usual but does not call any climate.* services.
+      default: false
+      selector:
+        boolean:
+
+
 variables:
   thermostat_unit_input: !input thermostat_unit
   climate_entity_id: !input climate_entity
@@ -231,6 +239,9 @@ variables:
   adaptive_air_velocity_val: !input adaptive_air_velocity
   humidity_comfort_enable_val: !input humidity_comfort_enable
   comfort_precision_mode_val: !input comfort_precision_mode
+  debug_log_only_val: !input debug_log_only
+  log_prefix: "{{ '[DRY-RUN] ' if debug_log_only_val else '' }}"
+
 
   thermostat_unit_resolved: >
     {% if thermostat_unit_input != 'auto' %}
@@ -546,6 +557,8 @@ action:
       - conditions:
           - condition: template
             value_template: "{{ natural_ventilation_available and is_occupied }}"
+      - condition: template
+        value_template: "{{ not debug_log_only_val }}"
         sequence:
           - service: climate.turn_off
             target:
@@ -569,6 +582,8 @@ action:
                   - condition: template
                     value_template: "{{ indoor_temp < comfort_temp_min }}"
                 sequence:
+                  - condition: template
+                    value_template: "{{ not debug_log_only_val }}"
                   # Always set heating mode when indoor temp is below comfort zone
                   - service: climate.set_hvac_mode
                     target:
@@ -578,6 +593,8 @@ action:
                   # Set temperature if needed
                   - condition: template
                     value_template: "{{ temperature_needs_change }}"
+                  - condition: template
+                    value_template: "{{ not debug_log_only_val }}"
                   - service: climate.set_temperature
                     target:
                       entity_id: !input climate_entity
@@ -592,6 +609,8 @@ action:
                   # Set fan speed for heating only if needed
                   - condition: template
                     value_template: "{{ adaptive_air_velocity_val and fan_mode_needs_change }}"
+                  - condition: template
+                    value_template: "{{ not debug_log_only_val }}"
                   - service: climate.set_fan_mode
                     target:
                       entity_id: !input climate_entity
@@ -603,6 +622,8 @@ action:
                   - condition: template
                     value_template: "{{ indoor_temp > comfort_temp_max }}"
                 sequence:
+                  - condition: template
+                    value_template: "{{ not debug_log_only_val }}"
                   # Always set cooling mode when indoor temp is above comfort zone
                   - service: climate.set_hvac_mode
                     target:
@@ -612,6 +633,8 @@ action:
                   # Set temperature if needed
                   - condition: template
                     value_template: "{{ temperature_needs_change }}"
+                  - condition: template
+                    value_template: "{{ not debug_log_only_val }}"
                   - service: climate.set_temperature
                     target:
                       entity_id: !input climate_entity
@@ -626,6 +649,8 @@ action:
                   # Set adaptive fan speed for cooling only if needed
                   - condition: template
                     value_template: "{{ adaptive_air_velocity_val and fan_mode_needs_change }}"
+                  - condition: template
+                    value_template: "{{ not debug_log_only_val }}"
                   - service: climate.set_fan_mode
                     target:
                       entity_id: !input climate_entity
@@ -644,6 +669,8 @@ action:
                           - condition: template
                             value_template: >
                               {{ outdoor_temp > comfort_temp_min and comfort_temp_min > indoor_temp }}
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                         sequence:
                           - service: climate.set_hvac_mode
                             target:
@@ -661,6 +688,8 @@ action:
                           - condition: template
                             value_template: >
                               {{ outdoor_temp < comfort_temp_max and comfort_temp_max < indoor_temp }}
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                         sequence:
                           - service: climate.set_hvac_mode
                             target:
@@ -678,6 +707,8 @@ action:
                           - condition: template
                             value_template: "{{ (outdoor_temp - indoor_temp) > 3 }}"
                         sequence:
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_hvac_mode
                             target:
                               entity_id: !input climate_entity
@@ -685,6 +716,8 @@ action:
                               hvac_mode: cool
                           - condition: template
                             value_template: "{{ temperature_needs_change }}"
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_temperature
                             target:
                               entity_id: !input climate_entity
@@ -702,6 +735,8 @@ action:
                           - condition: template
                             value_template: "{{ (indoor_temp - outdoor_temp) > 3 }}"
                         sequence:
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_hvac_mode
                             target:
                               entity_id: !input climate_entity
@@ -709,6 +744,8 @@ action:
                               hvac_mode: heat
                           - condition: template
                             value_template: "{{ temperature_needs_change }}"
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_temperature
                             target:
                               entity_id: !input climate_entity
@@ -724,6 +761,8 @@ action:
                       # Default: within comfort zone, maintain with auto mode (ASHRAE 55 compliant)
                       - conditions: []
                         sequence:
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_hvac_mode
                             target:
                               entity_id: !input climate_entity
@@ -731,6 +770,8 @@ action:
                               hvac_mode: auto
                           - condition: template
                             value_template: "{{ temperature_needs_change }}"
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_temperature
                             target:
                               entity_id: !input climate_entity
@@ -746,6 +787,8 @@ action:
                   # Set optimal fan speed only if needed for comfort zone scenarios
                   - condition: template
                     value_template: "{{ adaptive_air_velocity_val and fan_mode_needs_change }}"
+                  - condition: template
+                    value_template: "{{ not debug_log_only_val }}"
                   - service: climate.set_fan_mode
                     target:
                       entity_id: !input climate_entity
