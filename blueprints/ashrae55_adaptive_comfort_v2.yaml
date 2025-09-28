@@ -11,6 +11,19 @@ blueprint:
   source_url: https://github.com/msinhore/adaptive-climate-blueprint
 
   input:
+    thermostat_unit:
+      name: Thermostat unit
+      description: Force the thermostat unit. Leave Auto to detect from the climate entity.
+      default: "auto"
+      selector:
+        select:
+          options:
+            - label: "Auto (detect)"
+              value: "auto"
+            - label: "°C"
+              value: "C"
+            - label: "°F"
+              value: "F"
     climate_entity:
       name: Climate Entity
       description: The climate device to control (SmartIR, generic thermostat, etc.)
@@ -198,6 +211,7 @@ blueprint:
         boolean:
 
 variables:
+  thermostat_unit_input: !input thermostat_unit
   climate_entity_id: !input climate_entity
   indoor_sensor_id: !input indoor_temp_sensor
   outdoor_sensor_id: !input outdoor_temp_sensor
@@ -217,6 +231,19 @@ variables:
   adaptive_air_velocity_val: !input adaptive_air_velocity
   humidity_comfort_enable_val: !input humidity_comfort_enable
   comfort_precision_mode_val: !input comfort_precision_mode
+
+  thermostat_unit_resolved: >
+    {% if thermostat_unit_input != 'auto' %}
+      {{ thermostat_unit_input }}
+    {% else %}
+      {# Try to read from the climate entity; normalize to C/F #}
+      {% set tu = state_attr(climate_entity_id, 'temperature_unit') %}
+      {% set tu = tu|string %}
+      {% if tu in ['°F','F','fahrenheit','Fahrenheit'] %}F
+      {% elif tu in ['°C','C','celsius','Celsius'] %}C
+      {% else %}C{% endif %}   {# final fallback if integration doesnt expose a unit #}
+    {% endif %}
+
 
   comfort_tolerance: >
     {% if comfort_category_val == "I" %}
@@ -530,9 +557,12 @@ action:
                       entity_id: !input climate_entity
                     data:
                       temperature: >
-                        {% set target_u = state_attr(climate_entity_id, 'temperature_unit') %}
-                        {% set sp_c = target_temp %}  {# whatever variable your blueprint computes in °C #}
-                        {{ (sp_c * 9/5 + 32) | round(1) if target_u in ['°F','F'] else sp_c | round(1) }}
+                        {% set sp_c = target_temp | float %}   {# or adaptive_comfort_temp in that block #}
+                        {% if thermostat_unit_resolved == 'F' %}
+                          {{ (sp_c * 9/5 + 32) | round(1) }}
+                        {% else %}
+                          {{ sp_c | round(1) }}
+                        {% endif %}
                   # Set fan speed for heating only if needed
                   - condition: template
                     value_template: "{{ adaptive_air_velocity_val and fan_mode_needs_change }}"
@@ -561,9 +591,12 @@ action:
                       entity_id: !input climate_entity
                     data:
                       temperature: >
-                        {% set target_u = state_attr(climate_entity_id, 'temperature_unit') %}
-                        {% set sp_c = target_temp %}  {# whatever variable your blueprint computes in °C #}
-                        {{ (sp_c * 9/5 + 32) | round(1) if target_u in ['°F','F'] else sp_c | round(1) }}
+                        {% set sp_c = target_temp | float %}   {# or adaptive_comfort_temp in that block #}
+                        {% if thermostat_unit_resolved == 'F' %}
+                          {{ (sp_c * 9/5 + 32) | round(1) }}
+                        {% else %}
+                          {{ sp_c | round(1) }}
+                        {% endif %}
                   # Set adaptive fan speed for cooling only if needed
                   - condition: template
                     value_template: "{{ adaptive_air_velocity_val and fan_mode_needs_change }}"
@@ -631,9 +664,12 @@ action:
                               entity_id: !input climate_entity
                             data:
                               temperature: >
-                                {% set target_u = state_attr(climate_entity_id, 'temperature_unit') %}
-                                {% set sp_c = target_temp %}  {# whatever variable your blueprint computes in °C #}
-                                {{ (sp_c * 9/5 + 32) | round(1) if target_u in ['°F','F'] else sp_c | round(1) }}
+                                {% set sp_c = target_temp | float %}   {# or adaptive_comfort_temp in that block #}
+                                {% if thermostat_unit_resolved == 'F' %}
+                                  {{ (sp_c * 9/5 + 32) | round(1) }}
+                                {% else %}
+                                  {{ sp_c | round(1) }}
+                                {% endif %}
 
                       # Within comfort zone but outdoor significantly cooler - minimal heating
                       - conditions:
@@ -652,9 +688,12 @@ action:
                               entity_id: !input climate_entity
                             data:
                               temperature: >
-                                {% set target_u = state_attr(climate_entity_id, 'temperature_unit') %}
-                                {% set sp_c = target_temp %}  {# whatever variable your blueprint computes in °C #}
-                                {{ (sp_c * 9/5 + 32) | round(1) if target_u in ['°F','F'] else sp_c | round(1) }}
+                                {% set sp_c = target_temp | float %}   {# or adaptive_comfort_temp in that block #}
+                                {% if thermostat_unit_resolved == 'F' %}
+                                  {{ (sp_c * 9/5 + 32) | round(1) }}
+                                {% else %}
+                                  {{ sp_c | round(1) }}
+                                {% endif %}
 
                       # Default: within comfort zone, maintain with auto mode (ASHRAE 55 compliant)
                       - conditions: []
@@ -671,9 +710,12 @@ action:
                               entity_id: !input climate_entity
                             data:
                               temperature: >
-                                {% set target_u = state_attr(climate_entity_id, 'temperature_unit') %}
-                                {% set sp_c = adaptive_comfort_temp %}  {# whatever variable your blueprint computes in °C #}
-                                {{ (sp_c * 9/5 + 32) | round(1) if target_u in ['°F','F'] else sp_c | round(1) }}
+                                {% set sp_c = adaptive_comfort_temp | float %}   {# or adaptive_comfort_temp in that block #}
+                                {% if thermostat_unit_resolved == 'F' %}
+                                  {{ (sp_c * 9/5 + 32) | round(1) }}
+                                {% else %}
+                                  {{ sp_c | round(1) }}
+                                {% endif %}
 
                   # Set optimal fan speed only if needed for comfort zone scenarios
                   - condition: template
