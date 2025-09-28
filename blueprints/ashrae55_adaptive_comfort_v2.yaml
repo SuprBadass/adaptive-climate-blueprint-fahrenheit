@@ -211,7 +211,7 @@ blueprint:
         boolean:
 
     debug_log_only:
-      name: Debug – log only (no thermostat changes)
+      name: Debug log only (no thermostat changes)
       description: When on, the automation logs as usual but does not call any climate.* services.
       default: false
       selector:
@@ -557,9 +557,9 @@ action:
       - conditions:
           - condition: template
             value_template: "{{ natural_ventilation_available and is_occupied }}"
-      - condition: template
-        value_template: "{{ not debug_log_only_val }}"
         sequence:
+          - condition: template
+            value_template: "{{ not debug_log_only_val }}"
           - service: climate.turn_off
             target:
               entity_id: !input climate_entity
@@ -669,14 +669,16 @@ action:
                           - condition: template
                             value_template: >
                               {{ outdoor_temp > comfort_temp_min and comfort_temp_min > indoor_temp }}
+                        sequence:
                           - condition: template
                             value_template: "{{ not debug_log_only_val }}"
-                        sequence:
                           - service: climate.set_hvac_mode
                             target:
                               entity_id: !input climate_entity
                             data:
                               hvac_mode: fan_only
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_fan_mode
                             target:
                               entity_id: !input climate_entity
@@ -688,14 +690,16 @@ action:
                           - condition: template
                             value_template: >
                               {{ outdoor_temp < comfort_temp_max and comfort_temp_max < indoor_temp }}
+                        sequence:
                           - condition: template
                             value_template: "{{ not debug_log_only_val }}"
-                        sequence:
                           - service: climate.set_hvac_mode
                             target:
                               entity_id: !input climate_entity
                             data:
                               hvac_mode: fan_only
+                          - condition: template
+                            value_template: "{{ not debug_log_only_val }}"
                           - service: climate.set_fan_mode
                             target:
                               entity_id: !input climate_entity
