@@ -442,7 +442,8 @@ variables:
 
   # Current climate state checks to avoid unnecessary commands
   current_hvac_mode: >
-    {{ state_attr(climate_entity_id, 'hvac_mode') | string | lower }}
+    {{ states(climate_entity_id) | string | lower }}
+
 
   current_temperature: >
     {{ state_attr(climate_entity_id, 'temperature') | float(0) }}
