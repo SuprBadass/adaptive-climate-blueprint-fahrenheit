@@ -5,7 +5,7 @@
 [![ASHRAE 55](https://img.shields.io/badge/ASHRAE%2055-Compliant-orange.svg)](https://www.ashrae.org/technical-resources/standards-and-guidelines/read-only-versions-of-ashrae-standards)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSuprBadass%2Fadaptive-climate-blueprint%2Fblob%2Fmain%2Fblueprints%2Fashrae55_adaptive_comfort_v2.yaml)
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSuprBadass%2Fadaptive-climate-blueprint-fahrenheit%2Fblob%2Fmain%2Fblueprints%2Fashrae55_adaptive_comfort_v2.yaml)
 
 **Intelligent climate control implementing ASHRAE 55 adaptive comfort model. Automatically adjusts your AC/heating based on outdoor weather conditions for optimal comfort and energy savings.**
 
