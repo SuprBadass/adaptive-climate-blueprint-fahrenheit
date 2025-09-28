@@ -5,7 +5,7 @@
 [![ASHRAE 55](https://img.shields.io/badge/ASHRAE%2055-Compliant-orange.svg)](https://www.ashrae.org/technical-resources/standards-and-guidelines/read-only-versions-of-ashrae-standards)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmsinhore%2Fadaptive-climate-blueprint%2Fblob%2Fmain%2Fblueprints%2Fashrae55_adaptive_comfort_v2.yaml)
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSuprBadass%2Fadaptive-climate-blueprint%2Fblob%2Fmain%2Fblueprints%2Fashrae55_adaptive_comfort_v2.yaml)
 
 **Intelligent climate control implementing ASHRAE 55 adaptive comfort model. Automatically adjusts your AC/heating based on outdoor weather conditions for optimal comfort and energy savings.**
 
@@ -61,7 +61,7 @@
 ```yaml
 # Just 3 things needed:
 climate_entity: climate.your_ac_or_heating          # Your AC/heating device
-indoor_temp_sensor: sensor.room_temperature         # Any room temperature sensor  
+indoor_temp_sensor: sensor.room_temperature         # Any room temperature sensor
 outdoor_temp_sensor: weather.home                   # Built-in weather (free)
 ```
 
@@ -89,7 +89,7 @@ outdoor_temp_sensor: weather.home                   # Built-in weather (free)
 
 ### Advanced Options (Optional):
 - **Motion sensors**: Extra energy savings when away
-- **Humidity sensors**: Better comfort in humid weather  
+- **Humidity sensors**: Better comfort in humid weather
 - **Multiple rooms**: Set up one per room/AC unit
 - **Comfort categories**: Choose precision level (I, II, or III)
 - **Weather services**: OpenWeatherMap, Open-Meteo, AccuWeather, Met.no
@@ -106,7 +106,7 @@ Instead of keeping your AC at a fixed temperature (like 22°C all year), this bl
 
 ### Example Magic:
 - **Winter (5°C outside)**: Perfect indoor = 20°C (cozy, not overheated)
-- **Spring (15°C outside)**: Perfect indoor = 22°C (comfortable)  
+- **Spring (15°C outside)**: Perfect indoor = 22°C (comfortable)
 - **Summer (35°C outside)**: Perfect indoor = 27°C (cool enough, not freezing)
 
 **Why This Saves Money**: Traditional thermostats use the same temperature year-round, fighting against nature. This works WITH the weather using scientifically proven comfort models.
@@ -157,7 +157,7 @@ automation bedroom_climate:
       outdoor_temp_sensor: weather.home
       # ... other settings
 
-# Living Room  
+# Living Room
 automation living_room_climate:
   use_blueprint:
     path: ashrae55_adaptive_comfort_v2.yaml
@@ -172,7 +172,7 @@ automation living_room_climate:
 
 Adjust comfort tolerances based on your preferences:
 - **Category I** (Strict): ±2°C tolerance, office environments
-- **Category II** (Standard): ±3°C tolerance, typical residential use  
+- **Category II** (Standard): ±3°C tolerance, typical residential use
 - **Category III** (Relaxed): ±4°C tolerance, maximum energy savings
 
 ### Available Sensor Options (v2)
