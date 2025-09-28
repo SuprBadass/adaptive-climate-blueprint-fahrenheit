@@ -244,6 +244,26 @@ variables:
       {% else %}C{% endif %}   {# final fallback if integration doesnt expose a unit #}
     {% endif %}
 
+  # Current target setpoint, normalized to °C (handles single or dual setpoint thermostats)
+  current_setpoint_c: >
+    {% set single = state_attr(climate_entity_id, 'temperature') %}
+    {% if single is number %}
+      {% set n = single | float %}
+      {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
+    {% else %}
+      {# Dual setpoint: try to pick the relevant side, or average as a fallback #}
+      {% set low  = state_attr(climate_entity_id, 'target_temp_low') %}
+      {% set high = state_attr(climate_entity_id, 'target_temp_high') %}
+      {% set pick = (low if (indoor_temp > comfort_temp_max and low is number) else
+                    (high if (indoor_temp < comfort_temp_min and high is number) else
+                      ((low + high) / 2 if (low is number and high is number) else none))) %}
+      {% if pick is not none %}
+        {% set n = pick | float %}
+        {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
+      {% else %}
+        {{ target_temp | float }}   {# last resort: pretend we're already at target #}
+      {% endif %}
+    {% endif %}
 
   comfort_tolerance: >
     {% if comfort_category_val == "I" %}
@@ -444,9 +464,14 @@ variables:
   current_hvac_mode: >
     {{ states(climate_entity_id) | string | lower }}
 
-
-  current_temperature: >
-    {{ state_attr(climate_entity_id, 'temperature') | float(0) }}
+  current_ambient_c: >
+    {% set v = state_attr(climate_entity_id, 'current_temperature') %}
+    {% if v is number %}
+      {% set n = v | float %}
+      {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
+    {% else %}
+      {{ operative_temp }}  {# fall back to the indoor sensor used by the blueprint #}
+    {% endif %}
 
   current_fan_mode: >
     {{ state_attr(climate_entity_id, 'fan_mode') | string | lower }}
@@ -462,7 +487,7 @@ variables:
     {% endif %}
 
   temperature_needs_change: >
-    {{ (current_temperature - target_temp) | abs > 0.5 }}
+    {{ (current_setpoint_c - target_temp) | abs > 0.5 }}
 
   fan_mode_needs_change: >
     {% if adaptive_air_velocity_val %}
@@ -732,7 +757,7 @@ action:
               name: "ASHRAE 55 Adaptive Climate"
               message: >
                 ASHRAE 55 compliant climate control applied.
-                Target: {{ target_temp }}°C (Current: {{ current_temperature }}°C),
+                Target: {{ target_temp }}°C (Current: {{ current_ambient_c }}°C),
                 Indoor: {{ indoor_temp }}°C, Outdoor: {{ outdoor_temp }}°C,
                 Comfort zone: {{ comfort_temp_min }}-{{ comfort_temp_max }}°C (adaptive temp: {{ adaptive_comfort_temp }}°C),
                 HVAC Mode: {% if indoor_temp < comfort_temp_min %}HEAT (below comfort zone){% elif indoor_temp > comfort_temp_max %}COOL (above comfort zone){% elif outdoor_temp > comfort_temp_min and comfort_temp_min > indoor_temp %}FAN (natural ventilation opportunity){% elif outdoor_temp < comfort_temp_max and comfort_temp_max < indoor_temp %}FAN (natural ventilation opportunity){% elif (outdoor_temp - indoor_temp) > 3 %}COOL (outdoor >>3°C warmer){% elif (indoor_temp - outdoor_temp) > 3 %}HEAT (outdoor >>3°C cooler){% else %}AUTO (within comfort zone){% endif %} (was {{ current_hvac_mode }}),
