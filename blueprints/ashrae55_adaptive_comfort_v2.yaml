@@ -255,13 +255,15 @@ variables:
       {% else %}C{% endif %}   {# final fallback if integration doesnt expose a unit #}
     {% endif %}
 
-  c_to_unit: >
-    {% set c = value_c | float %}
-    {% if thermostat_unit_resolved == 'F' %}
-      {{ (c * 9/5 + 32) | round(1) }}
-    {% else %}
-      {{ c | round(1) }}
-    {% endif %}
+  comfort_temp_min_unit: >
+    {% set c = comfort_temp_min | float %}
+    {% if thermostat_unit_resolved == 'F' %}{{ (c * 9/5 + 32) | round(1) }}
+    {% else %}{{ c | round(1) }}{% endif %}
+
+  comfort_temp_max_unit: >
+    {% set c = comfort_temp_max | float %}
+    {% if thermostat_unit_resolved == 'F' %}{{ (c * 9/5 + 32) | round(1) }}
+    {% else %}{{ c | round(1) }}{% endif %}
 
   # Current target setpoint, normalized to °C (handles single or dual setpoint thermostats)
   current_setpoint_c: >
@@ -800,12 +802,8 @@ action:
                             target:
                               entity_id: !input climate_entity
                             data:
-                              target_temp_low: >
-                                {% set value_c = comfort_temp_min %}
-                                {{ c_to_unit }}
-                              target_temp_high: >
-                                {% set value_c = comfort_temp_max %}
-                                {{ c_to_unit }}
+                              target_temp_low: "{{ comfort_temp_min_unit }}"
+                              target_temp_high: "{{ comfort_temp_max_unit }}"
 
                   # Set optimal fan speed only if needed for comfort zone scenarios
                   - condition: template
