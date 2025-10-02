@@ -231,7 +231,7 @@ variables:
   min_comfort_temp_val: !input min_comfort_temp
   max_comfort_temp_val: !input max_comfort_temp
   comfort_category_val: !input comfort_category
-  energy_save_mode_val: !input energy_save_mode
+  energy_save_mode_val: input energy_save_mode
   natural_ventilation_enable_val: !input natural_ventilation_enable
   natural_ventilation_threshold_val: !input natural_ventilation_threshold
   setback_temperature_offset_val: !input setback_temperature_offset
