@@ -219,6 +219,7 @@ blueprint:
 
 
 variables:
+  # ---- Inputs (as-is) ----
   thermostat_unit_input: !input thermostat_unit
   climate_entity_id: !input climate_entity
   indoor_sensor_id: !input indoor_temp_sensor
@@ -241,7 +242,6 @@ variables:
   comfort_precision_mode_val: !input comfort_precision_mode
   debug_log_only_val: !input debug_log_only
   log_prefix: "{{ '[DRY-RUN] ' if debug_log_only_val else '' }}"
-
 
   # 1) Unit resolve
   thermostat_unit_resolved: >
@@ -302,36 +302,7 @@ variables:
 
   indoor_temp: "{{ operative_temp }}"
 
-  # 4) Comfort band
-  comfort_tolerance: >
-    {% if comfort_category_val == "I" %}2.0
-    {% elif comfort_category_val == "II" %}3.0
-    {% else %}4.0{% endif %}
-
-  base_adaptive_comfort_temp: >
-    {{ (18.9 + 0.255 * outdoor_temp) | round(1) }}
-
-  outdoor_temp_valid: >
-    {{ outdoor_temp >= 10 and outdoor_temp <= 40 }}
-
-  adaptive_comfort_temp: >
-    {% if outdoor_temp_valid %}
-      {% if comfort_precision_mode_val %}
-        {{ (base_adaptive_comfort_temp + air_velocity_offset + humidity_offset) | round(1) }}
-      {% else %}
-        {{ base_adaptive_comfort_temp | round(1) }}
-      {% endif %}
-    {% else %}
-      22.0
-    {% endif %}
-
-  comfort_temp_min: >
-    {{ [adaptive_comfort_temp - comfort_tolerance, min_comfort_temp_val] | max | round(1) }}
-
-  comfort_temp_max: >
-    {{ [adaptive_comfort_temp + comfort_tolerance, max_comfort_temp_val] | min | round(1) }}
-
-  # 5) Humidity + air velocity offsets (these can stay here)
+  # 4) Humidity + air velocity (must come BEFORE adaptive_comfort_temp if precision mode can be true)
   indoor_humidity: >
     {% if indoor_humidity_sensor_id and indoor_humidity_sensor_id != "" %}
       {{ states(indoor_humidity_sensor_id) | float(50) }}
@@ -361,36 +332,36 @@ variables:
       {{ -0.2 * ((30 - indoor_humidity) / 10) | round(1) }}
     {% else %}0{% endif %}
 
-  # 6) Now it’s safe to compute setpoints/ambient using comfort band & indoor_temp
-  current_setpoint_c: >
-    {% set single = state_attr(climate_entity_id, 'temperature') %}
-    {% if single is number %}
-      {% set n = single | float %}
-      {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
-    {% else %}
-      {% set low  = state_attr(climate_entity_id, 'target_temp_low') %}
-      {% set high = state_attr(climate_entity_id, 'target_temp_high') %}
-      {% set pick = (low if (indoor_temp > comfort_temp_max and low is number)
-                    else (high if (indoor_temp < comfort_temp_min and high is number)
-                    else ((low + high) / 2 if (low is number and high is number) else none))) %}
-      {% if pick is not none %}
-        {% set n = pick | float %}
-        {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
+  # 5) Comfort band
+  comfort_tolerance: >
+    {% if comfort_category_val == "I" %}2.0
+    {% elif comfort_category_val == "II" %}3.0
+    {% else %}4.0{% endif %}
+
+  base_adaptive_comfort_temp: >
+    {{ (18.9 + 0.255 * outdoor_temp) | round(1) }}
+
+  outdoor_temp_valid: >
+    {{ outdoor_temp >= 10 and outdoor_temp <= 40 }}
+
+  adaptive_comfort_temp: >
+    {% if outdoor_temp_valid %}
+      {% if comfort_precision_mode_val %}
+        {{ (base_adaptive_comfort_temp + air_velocity_offset + humidity_offset) | round(1) }}
       {% else %}
-        {{ target_temp | float }}
+        {{ base_adaptive_comfort_temp | round(1) }}
       {% endif %}
-    {% endif %}
-
-  current_ambient_c: >
-    {% set v = state_attr(climate_entity_id, 'current_temperature') %}
-    {% if v is number %}
-      {% set n = v | float %}
-      {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
     {% else %}
-      {{ operative_temp }}
+      22.0
     {% endif %}
 
-  # 7) Occupancy, ventilation, fan, targets, checks
+  comfort_temp_min: >
+    {{ [adaptive_comfort_temp - comfort_tolerance, min_comfort_temp_val] | max | round(1) }}
+
+  comfort_temp_max: >
+    {{ [adaptive_comfort_temp + comfort_tolerance, max_comfort_temp_val] | min | round(1) }}
+
+  # 6) Occupancy & ventilation helpers
   is_occupied: >
     {% if occupancy_sensor_id and occupancy_sensor_id != "" %}
       {{ is_state(occupancy_sensor_id, 'on') }}
@@ -415,6 +386,7 @@ variables:
       {% if d > 3 %}high{% elif d > 1.5 %}medium{% elif d > 0.5 %}low{% else %}auto{% endif %}
     {% else %}auto{% endif %}
 
+  # 7) Target temp (placed BEFORE current_setpoint_c so it can be used as a fallback there)
   target_temp: >
     {% if not is_occupied and energy_save_mode_val %}
       {% if indoor_temp > comfort_temp_max %}
@@ -434,11 +406,41 @@ variables:
       {% endif %}
     {% endif %}
 
+  # 8) Current states & checks
   current_hvac_mode: >
     {{ states(climate_entity_id) | string | lower }}
 
   current_fan_mode: >
     {{ state_attr(climate_entity_id, 'fan_mode') | string | lower }}
+
+  current_ambient_c: >
+    {% set v = state_attr(climate_entity_id, 'current_temperature') %}
+    {% if v is number %}
+      {% set n = v | float %}
+      {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
+    {% else %}
+      {{ operative_temp }}
+    {% endif %}
+
+  # uses target_temp as a fallback -> kept AFTER target_temp
+  current_setpoint_c: >
+    {% set single = state_attr(climate_entity_id, 'temperature') %}
+    {% if single is number %}
+      {% set n = single | float %}
+      {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
+    {% else %}
+      {% set low  = state_attr(climate_entity_id, 'target_temp_low') %}
+      {% set high = state_attr(climate_entity_id, 'target_temp_high') %}
+      {% set pick = (low if (indoor_temp > comfort_temp_max and low is number)
+                    else (high if (indoor_temp < comfort_temp_min and high is number)
+                    else ((low + high) / 2 if (low is number and high is number) else none))) %}
+      {% if pick is not none %}
+        {% set n = pick | float %}
+        {{ ((n - 32) * 5/9) if thermostat_unit_resolved == 'F' else n }}
+      {% else %}
+        {{ target_temp | float }}
+      {% endif %}
+    {% endif %}
 
   hvac_mode_needs_change: >
     {% if indoor_temp < comfort_temp_min %}
@@ -475,6 +477,7 @@ variables:
       {% set notes = notes + ["Air velocity cooling only applies above 25°C operative temp"] %}
     {% endif %}
     {{ (notes | join("; ")) if notes|length > 0 else "Compliant" }}
+
 
 trigger:
   - platform: time_pattern
